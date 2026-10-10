@@ -28,7 +28,7 @@
     },
     "program": {
       "type": "string",
-      "description": "Path to the Dart file to debug",
+      "description": "Path to the Dart file to debug. Files ending in `_test.dart` run in the test debug adapter; `path?line=N` runs only the test or group at line N.",
       "examples": [
         "lib/main.dart",
         "bin/main.dart",
@@ -37,11 +37,11 @@
     },
     "cwd": {
       "type": "string",
-      "description": "Path to the working directory"
+      "description": "Path to the working directory. Defaults to the nearest directory above `program` that contains `pubspec.yaml`."
     },
     "useFvm": {
       "type": "boolean",
-      "description": "Whether to use fvm to run the Dart/Flutter program"
+      "description": "Whether to run the Dart/Flutter tool through the `fvm` command. If unset, the SDK in `.fvm/flutter_sdk` is used when `cwd` or one of its parents has `.fvmrc` or `.fvm/fvm_config.json`; `false` always uses the tool from PATH."
     },
     "args": {
       "type": "array",
@@ -79,7 +79,7 @@
     },
     "deviceId": {
       "type": "string",
-      "description": "The device to launch on, passed to the Flutter tool as `-d <deviceId>`. Ignored if toolArgs already contains -d/--device-id. If unset, Flutter auto-picks a device.",
+      "description": "The device to launch on, passed to the Flutter tool as `-d <deviceId>`. Ignored if toolArgs already contains -d/--device-id, and for tests outside `integration_test/`. If unset, Flutter auto-picks a device.",
       "examples": [
         "chrome",
         "edge",

@@ -1,11 +1,20 @@
+mod project;
+
 use zed::lsp::CompletionKind;
 use zed::settings::LspSettings;
 use zed::{CodeLabel, CodeLabelSpan};
 use zed_extension_api::serde_json::json;
 use zed_extension_api::{
-    self as zed, current_platform, serde_json, DebugAdapterBinary, DebugTaskDefinition, Os, Result,
-    StartDebuggingRequestArguments, StartDebuggingRequestArgumentsRequest, Worktree,
+    self as zed, current_platform, serde_json, DebugAdapterBinary, DebugScenario,
+    DebugTaskDefinition, Os, Result, StartDebuggingRequestArguments,
+    StartDebuggingRequestArgumentsRequest, TaskTemplate, Worktree,
 };
+
+/// Marks the tasks from `languages/dart/tasks.json`. They run
+/// `sh -c <script> dart-task <dir> <worktree root> <tool> <args>...`, where the
+/// script runs the tool from the nearest package root, using the project's
+/// FVM SDK if it has one.
+const TASK_MARKER: &str = "dart-task";
 
 fn tool_binary(debug_mode: &str) -> &'static str {
     let (os, _) = current_platform();
@@ -15,6 +24,25 @@ fn tool_binary(debug_mode: &str) -> &'static str {
         (_, Os::Windows) => "dart.bat",
         (_, _) => "dart",
     }
+}
+
+/// The tool and its arguments of a task from `languages/dart/tasks.json`.
+fn dart_task_command(task: &TaskTemplate) -> Option<Vec<&str>> {
+    if task.command != "sh" {
+        return None;
+    }
+    match task.args.as_slice() {
+        [flag, _script, marker, _dir, _root, command @ ..]
+            if flag == "-c" && marker == TASK_MARKER =>
+        {
+            Some(command.iter().map(String::as_str).collect())
+        }
+        _ => None,
+    }
+}
+
+fn file_exists(worktree: &Worktree, path: &str) -> bool {
+    worktree.read_text_file(path).is_ok()
 }
 
 struct DartBinary {
@@ -40,6 +68,18 @@ impl DartExtension {
         if let Some(path) = binary_settings.and_then(|binary_settings| binary_settings.path) {
             return Ok(DartBinary {
                 path,
+                args: binary_args,
+            });
+        }
+
+        if let Some(fvm_project) = project::find_fvm_project("", |path| file_exists(worktree, path))
+        {
+            return Ok(DartBinary {
+                path: project::fvm_tool_path(
+                    &worktree.root_path(),
+                    &fvm_project,
+                    tool_binary("dart"),
+                ),
                 args: binary_args,
             });
         }
@@ -75,10 +115,13 @@ impl zed::Extension for DartExtension {
         let user_config: serde_json::Value = serde_json::from_str(&config.config)
             .map_err(|e| format!("Failed to parse debug config: {e}"))?;
 
-        let program = user_config
+        let root = worktree.root_path();
+
+        let mut program = user_config
             .get("program")
             .and_then(|v| v.as_str())
-            .unwrap_or("lib/main.dart");
+            .unwrap_or("lib/main.dart")
+            .to_string();
 
         let args = user_config
             .get("args")
@@ -91,10 +134,7 @@ impl zed::Extension for DartExtension {
             })
             .unwrap_or_default();
 
-        let use_fvm = user_config
-            .get("useFvm")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
+        let use_fvm = user_config.get("useFvm").and_then(|v| v.as_bool());
 
         // Get debug_mode from user config (flutter or dart)
         let debug_mode = user_config
@@ -105,33 +145,70 @@ impl zed::Extension for DartExtension {
 
         let tool = tool_binary(debug_mode);
 
-        let (command, arguments) = if use_fvm {
+        // Without an explicit `cwd`, run from the package that contains the
+        // program, so apps inside a monorepo can be launched by path alone.
+        let cwd = match user_config.get("cwd").and_then(|v| v.as_str()) {
+            Some(cwd) => cwd.to_string(),
+            None => {
+                let package_root =
+                    project::relative_to_root(&root, project::without_query(&program)).and_then(
+                        |path| {
+                            project::find_package_root(project::parent(&path), |path| {
+                                file_exists(worktree, path)
+                            })
+                        },
+                    );
+                match package_root {
+                    Some(package_root) => {
+                        if !program.starts_with('/') {
+                            program = project::absolute(&root, &program);
+                        }
+                        project::absolute(&root, &package_root)
+                    }
+                    None => root.clone(),
+                }
+            }
+        };
+
+        let test_mode = project::is_test_file(&program);
+
+        let mut arguments = vec!["debug_adapter".to_string()];
+        if test_mode {
+            arguments.push("--test".to_string());
+        }
+
+        let fvm_project = match use_fvm {
+            Some(_) => None,
+            None => project::relative_to_root(&root, &cwd).and_then(|dir| {
+                project::find_fvm_project(&dir, |path| file_exists(worktree, path))
+            }),
+        };
+
+        let command = if use_fvm == Some(true) {
             let fvm_path = worktree.which("fvm").ok_or_else(|| {
                 "fvm not found in PATH. Install fvm or set useFvm to false.".to_string()
             })?;
-            (
-                fvm_path,
-                vec![tool.to_string(), "debug_adapter".to_string()],
-            )
+            arguments.insert(0, tool.to_string());
+            fvm_path
+        } else if let Some(fvm_project) = fvm_project {
+            project::fvm_tool_path(&root, &fvm_project, tool)
         } else {
-            let tool_path = worktree.which(tool).ok_or_else(|| {
+            worktree.which(tool).ok_or_else(|| {
                 format!("{tool} not found in PATH. Install from dart.dev or flutter.dev.")
-            })?;
-            (tool_path, vec!["debug_adapter".to_string()])
+            })?
         };
 
-        let device_id = user_config.get("deviceId").and_then(|v| v.as_str());
+        // Unit tests run on the host's `flutter_tester`; only integration
+        // tests need the device that Zed may have filled in.
+        let device_id = user_config
+            .get("deviceId")
+            .and_then(|v| v.as_str())
+            .filter(|_| !test_mode || project::is_integration_test(&program));
 
         let platform = user_config
             .get("platform")
             .and_then(|v| v.as_str())
             .unwrap_or("web");
-
-        let cwd = user_config
-            .get("cwd")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
-            .or_else(|| Some(worktree.root_path()));
 
         let request = user_config
             .get("request")
@@ -194,7 +271,7 @@ impl zed::Extension for DartExtension {
             "type": debug_mode,
             "request": request,
             "program": program,
-            "cwd": cwd.clone().unwrap_or_default(),
+            "cwd": cwd.clone(),
             "args": args,
             "flutterMode": flutter_mode,
             "platform": platform,
@@ -220,7 +297,7 @@ impl zed::Extension for DartExtension {
             command: Some(command),
             arguments,
             envs: env,
-            cwd,
+            cwd: Some(cwd),
             connection: None,
             request_args: StartDebuggingRequestArguments {
                 configuration: config_json.to_string(),
@@ -250,6 +327,35 @@ impl zed::Extension for DartExtension {
         }
     }
 
+    fn dap_locator_create_scenario(
+        &mut self,
+        _locator_name: String,
+        build_task: TaskTemplate,
+        resolved_label: String,
+        debug_adapter_name: String,
+    ) -> Option<DebugScenario> {
+        if debug_adapter_name != "Dart" {
+            return None;
+        }
+        let command = dart_task_command(&build_task)?;
+        let program = match command.as_slice() {
+            ["flutter", "run", "-t", program] | ["flutter", "test", program] => *program,
+            _ => return None,
+        };
+        let config = json!({
+            "type": "flutter",
+            "request": "launch",
+            "program": program,
+        });
+        Some(DebugScenario {
+            label: resolved_label,
+            adapter: debug_adapter_name,
+            build: None,
+            config: config.to_string(),
+            tcp_connection: None,
+        })
+    }
+
     fn language_server_command(
         &mut self,
         language_server_id: &zed::LanguageServerId,
@@ -264,6 +370,19 @@ impl zed::Extension for DartExtension {
             }),
             env: Default::default(),
         })
+    }
+
+    fn language_server_initialization_options(
+        &mut self,
+        _language_server_id: &zed::LanguageServerId,
+        _worktree: &zed::Worktree,
+    ) -> Result<Option<serde_json::Value>> {
+        // Zed merges `lsp.dart.initialization_options` from the settings on
+        // top of these. `outline` and `flutterOutline` stay off until Zed
+        // handles their notifications: unhandled ones are logged in full.
+        Ok(Some(json!({
+            "closingLabels": true,
+        })))
     }
 
     fn language_server_workspace_configuration(
@@ -361,3 +480,107 @@ impl zed::Extension for DartExtension {
 }
 
 zed::register_extension!(DartExtension);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zed::Extension as _;
+
+    fn tasks() -> Vec<TaskTemplate> {
+        let tasks: serde_json::Value =
+            serde_json::from_str(include_str!("../languages/dart/tasks.json")).unwrap();
+        tasks
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|task| TaskTemplate {
+                label: task["label"].as_str().unwrap().to_string(),
+                command: task["command"].as_str().unwrap().to_string(),
+                args: task["args"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|arg| arg.as_str().unwrap().to_string())
+                    .collect(),
+                env: Vec::new(),
+                cwd: None,
+            })
+            .collect()
+    }
+
+    fn scenario_config(label: &str) -> Option<serde_json::Value> {
+        let task = tasks()
+            .into_iter()
+            .find(|task| task.label == label)
+            .unwrap();
+        DartExtension
+            .dap_locator_create_scenario(
+                "dart".to_string(),
+                task,
+                label.to_string(),
+                "Dart".to_string(),
+            )
+            .map(|scenario| serde_json::from_str(&scenario.config).unwrap())
+    }
+
+    #[test]
+    fn test_all_tasks_use_the_wrapper() {
+        for task in tasks() {
+            assert!(dart_task_command(&task).is_some(), "{}", task.label);
+        }
+    }
+
+    #[test]
+    fn test_locator_debugs_flutter_run_and_test_tasks() {
+        assert_eq!(
+            scenario_config("flutter run $ZED_STEM"),
+            Some(json!({ "type": "flutter", "request": "launch", "program": "$ZED_FILE" }))
+        );
+        assert_eq!(
+            scenario_config("flutter test $ZED_STEM"),
+            Some(json!({ "type": "flutter", "request": "launch", "program": "$ZED_FILE" }))
+        );
+        assert_eq!(
+            scenario_config("flutter test $ZED_CUSTOM_DART_TEST_NAME"),
+            Some(json!({
+                "type": "flutter",
+                "request": "launch",
+                "program": "$ZED_FILE?line=$ZED_ROW",
+            }))
+        );
+        assert_eq!(scenario_config("flutter run $ZED_STEM --profile"), None);
+        assert_eq!(scenario_config("flutter pub get"), None);
+    }
+
+    #[test]
+    fn test_locator_ignores_other_adapters_and_tasks() {
+        let task = tasks()
+            .into_iter()
+            .find(|task| task.label == "flutter run $ZED_STEM")
+            .unwrap();
+        assert!(DartExtension
+            .dap_locator_create_scenario(
+                "dart".to_string(),
+                task,
+                String::new(),
+                "CodeLLDB".to_string()
+            )
+            .is_none());
+
+        let task = TaskTemplate {
+            label: "flutter run".to_string(),
+            command: "flutter".to_string(),
+            args: vec!["run".to_string()],
+            env: Vec::new(),
+            cwd: None,
+        };
+        assert!(DartExtension
+            .dap_locator_create_scenario(
+                "dart".to_string(),
+                task,
+                String::new(),
+                "Dart".to_string()
+            )
+            .is_none());
+    }
+}

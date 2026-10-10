@@ -1,64 +1,189 @@
 [
   {
-    "label": "dart pub get",
-    "command": "dart",
-    "args": ["pub", "get"]
+    "label": "flutter pub get",
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "flutter",
+      "pub",
+      "get"
+    ],
+    "show_command": false
+  },
+  {
+    "label": "flutter clean",
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "flutter",
+      "clean"
+    ],
+    "show_command": false
   },
   {
     "label": "dart run build_runner build",
-    "command": "dart",
-    "args": ["run", "build_runner", "build", "--delete-conflicting-outputs"]
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "dart",
+      "run",
+      "build_runner",
+      "build",
+      "--delete-conflicting-outputs"
+    ],
+    "show_command": false
+  },
+  {
+    "label": "dart run build_runner watch",
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "dart",
+      "run",
+      "build_runner",
+      "watch",
+      "--delete-conflicting-outputs"
+    ],
+    "show_command": false
   },
   {
     "label": "dart analyze",
-    "command": "dart",
-    "args": ["analyze"]
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "dart",
+      "analyze"
+    ],
+    "show_command": false
   },
   {
     "label": "dart format",
-    "command": "dart",
-    "args": ["format", "."]
-  },
-  {
-    "label": "flutter run",
-    "command": "flutter",
-    "args": ["run"],
-    "tags": ["flutter-main"]
-  },
-  {
-    "label": "fvm flutter run",
-    "command": "fvm",
-    "args": ["flutter", "run"],
-    "tags": ["flutter-main"]
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "dart",
+      "format",
+      "."
+    ],
+    "show_command": false
   },
   {
     "label": "flutter test $ZED_STEM",
-    "command": "flutter",
-    "args": ["test", "$ZED_FILE"],
-    "tags": ["flutter-test-main"]
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "flutter",
+      "test",
+      "$ZED_FILE"
+    ],
+    "show_command": false,
+    "tags": [
+      "flutter-test-main"
+    ]
   },
   {
-    "label": "fvm flutter test $ZED_STEM",
-    "command": "fvm",
-    "args": ["flutter", "test", "$ZED_FILE"],
-    "tags": ["flutter-test-main"]
+    "label": "flutter test $ZED_CUSTOM_DART_TEST_NAME",
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "flutter",
+      "test",
+      "$ZED_FILE?line=$ZED_ROW"
+    ],
+    "show_command": false,
+    "tags": [
+      "flutter-test"
+    ]
   },
   {
-    "label": "dart test file $ZED_STEM",
-    "command": "dart",
-    "args": ["test", "$ZED_FILE"],
-    "tags": ["dart-test-file"]
+    "label": "flutter run $ZED_STEM",
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "flutter",
+      "run",
+      "-t",
+      "$ZED_FILE"
+    ],
+    "show_command": false,
+    "tags": [
+      "flutter-main"
+    ]
   },
   {
-    "label": "dart test group $ZED_STEM",
-    "command": "dart",
-    "args": ["test", "\"$ZED_FILE?line=$ZED_ROW\""],
-    "tags": ["dart-test-group"]
+    "label": "flutter run $ZED_STEM --profile",
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "flutter",
+      "run",
+      "-t",
+      "$ZED_FILE",
+      "--profile"
+    ],
+    "show_command": false,
+    "tags": [
+      "flutter-main"
+    ]
   },
   {
-    "label": "dart test single $ZED_STEM",
-    "command": "dart",
-    "args": ["test", "\"$ZED_FILE?line=$ZED_ROW\""],
-    "tags": ["dart-test-single"]
+    "label": "flutter run $ZED_STEM --release",
+    "command": "sh",
+    "args": [
+      "-c",
+      "dir=$1 root=$2 tool=$3; shift 3; [ -n \"$dir\" ] || dir=$root; while [ ! -f \"$dir/pubspec.yaml\" ] && [ \"$dir\" != \"$root\" ] && [ \"$dir\" != / ]; do dir=$(dirname \"$dir\"); done; cd \"$dir\" || exit; sdk=$dir; while [ ! -d \"$sdk/.fvm/flutter_sdk/bin\" ] && [ \"$sdk\" != \"$root\" ] && [ \"$sdk\" != / ]; do sdk=$(dirname \"$sdk\"); done; if [ -d \"$sdk/.fvm/flutter_sdk/bin\" ]; then tool=$sdk/.fvm/flutter_sdk/bin/$tool; fi; exec \"$tool\" \"$@\"",
+      "dart-task",
+      "${ZED_DIRNAME:}",
+      "$ZED_WORKTREE_ROOT",
+      "flutter",
+      "run",
+      "-t",
+      "$ZED_FILE",
+      "--release"
+    ],
+    "show_command": false,
+    "tags": [
+      "flutter-main"
+    ]
   }
 ]

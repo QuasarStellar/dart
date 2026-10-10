@@ -1,0 +1,172 @@
+{
+  "Flutter Stateless Widget": {
+    "prefix": "stless",
+    "description": "Insert a StatelessWidget",
+    "body": [
+      "class ${1:MyWidget} extends StatelessWidget {",
+      "  const ${1:MyWidget}({super.key});",
+      "",
+      "  @override",
+      "  Widget build(BuildContext context) {",
+      "    return ${0:const Placeholder()};",
+      "  }",
+      "}"
+    ]
+  },
+  "Flutter Stateful Widget": {
+    "prefix": "stful",
+    "description": "Insert a StatefulWidget",
+    "body": [
+      "class ${1:MyWidget} extends StatefulWidget {",
+      "  const ${1:MyWidget}({super.key});",
+      "",
+      "  @override",
+      "  State<${1:MyWidget}> createState() => _${1:MyWidget}State();",
+      "}",
+      "",
+      "class _${1:MyWidget}State extends State<${1:MyWidget}> {",
+      "  @override",
+      "  Widget build(BuildContext context) {",
+      "    return ${0:const Placeholder()};",
+      "  }",
+      "}"
+    ]
+  },
+  "Flutter Widget with AnimationController": {
+    "prefix": "stanim",
+    "description": "Insert a StatefulWidget with an AnimationController",
+    "body": [
+      "class ${1:MyWidget} extends StatefulWidget {",
+      "  const ${1:MyWidget}({super.key});",
+      "",
+      "  @override",
+      "  State<${1:MyWidget}> createState() => _${1:MyWidget}State();",
+      "}",
+      "",
+      "class _${1:MyWidget}State extends State<${1:MyWidget}>",
+      "    with SingleTickerProviderStateMixin {",
+      "  late final AnimationController _controller;",
+      "",
+      "  @override",
+      "  void initState() {",
+      "    super.initState();",
+      "    _controller = AnimationController(vsync: this);",
+      "  }",
+      "",
+      "  @override",
+      "  void dispose() {",
+      "    _controller.dispose();",
+      "    super.dispose();",
+      "  }",
+      "",
+      "  @override",
+      "  Widget build(BuildContext context) {",
+      "    return ${0:const Placeholder()};",
+      "  }",
+      "}"
+    ]
+  },
+  "Flutter Inherited Widget": {
+    "prefix": "inh",
+    "description": "Insert an InheritedWidget",
+    "body": [
+      "class ${1:MyInheritedWidget} extends InheritedWidget {",
+      "  const ${1:MyInheritedWidget}({super.key, required super.child});",
+      "",
+      "  static ${1:MyInheritedWidget}? maybeOf(BuildContext context) {",
+      "    return context.dependOnInheritedWidgetOfExactType<${1:MyInheritedWidget}>();",
+      "  }",
+      "",
+      "  static ${1:MyInheritedWidget} of(BuildContext context) {",
+      "    final result = maybeOf(context);",
+      "    assert(result != null, 'No ${1:MyInheritedWidget} found in context');",
+      "    return result!;",
+      "  }",
+      "",
+      "  @override",
+      "  bool updateShouldNotify(${1:MyInheritedWidget} oldWidget) => ${0:true};",
+      "}"
+    ]
+  },
+  "Flutter initState": {
+    "prefix": "initS",
+    "description": "Override initState",
+    "body": [
+      "@override",
+      "void initState() {",
+      "  super.initState();",
+      "  $0",
+      "}"
+    ]
+  },
+  "Flutter dispose": {
+    "prefix": "dis",
+    "description": "Override dispose",
+    "body": [
+      "@override",
+      "void dispose() {",
+      "  $0",
+      "  super.dispose();",
+      "}"
+    ]
+  },
+  "Flutter didChangeDependencies": {
+    "prefix": "didChangeD",
+    "description": "Override didChangeDependencies",
+    "body": [
+      "@override",
+      "void didChangeDependencies() {",
+      "  super.didChangeDependencies();",
+      "  $0",
+      "}"
+    ]
+  },
+  "Flutter didUpdateWidget": {
+    "prefix": "didUpdateW",
+    "description": "Override didUpdateWidget",
+    "body": [
+      "@override",
+      "void didUpdateWidget(covariant ${1:MyWidget} oldWidget) {",
+      "  super.didUpdateWidget(oldWidget);",
+      "  $0",
+      "}"
+    ]
+  },
+  "Flutter build": {
+    "prefix": "build",
+    "description": "Override build",
+    "body": [
+      "@override",
+      "Widget build(BuildContext context) {",
+      "  return ${0:const Placeholder()};",
+      "}"
+    ]
+  },
+  "Test": {
+    "prefix": "test",
+    "description": "Insert a test",
+    "body": [
+      "test('${1:description}', () {",
+      "  $0",
+      "});"
+    ]
+  },
+  "Widget test": {
+    "prefix": "testW",
+    "description": "Insert a widget test",
+    "body": [
+      "testWidgets('${1:description}', (tester) async {",
+      "  $0",
+      "});"
+    ]
+  },
+  "Test group": {
+    "prefix": "group",
+    "description": "Insert a group of tests",
+    "body": [
+      "group('${1:description}', () {",
+      "  $0",
+      "});"
+    ]
+  }
+}

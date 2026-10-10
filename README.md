@@ -1,3 +1,5 @@
+> [!IMPORTANT]
+> Remove this line to confirm you've reviewed this PR before submitting.
 # Zed Dart
 
 A [Dart](https://dart.dev/) extension for [Zed](https://zed.dev).
@@ -18,6 +20,64 @@ Add the following to your `settings.json` to enable features like organizing imp
       "code_actions_on_format": {
         "source.organizeImports": true,
         "source.fixAll": true
+      }
+    }
+  }
+}
+```
+
+## Flutter SDK and FVM
+
+The language server, the debug adapter and the tasks use the SDK that [FVM](https://fvm.app)
+links into `.fvm/flutter_sdk` when the project has an `.fvmrc` (or `.fvm/fvm_config.json`),
+and `dart` / `flutter` from `PATH` otherwise. Run `fvm install` if the link is missing.
+The `lsp.dart.binary.path` setting and the `useFvm` debug option take precedence.
+
+## Run and debug
+
+The run button next to `main()`, `test()`, `testWidgets()` and `group()` offers:
+
+- `flutter run` (also `--profile` and `--release`) and `flutter test` for the file, test or group;
+- a debug session for `flutter run` and `flutter test`.
+
+Tasks run from the nearest directory with a `pubspec.yaml`, so they work in monorepos and pub
+workspaces. The same tasks (`flutter pub get`, `flutter clean`, `dart run build_runner build` /
+`watch`, …) are in `task: spawn`. They need a POSIX `sh`.
+
+In `.zed/debug.json`, `cwd` defaults to the package that contains `program`, and a `program` ending
+in `_test.dart` is run by the test debug adapter:
+
+```json
+[
+  {
+    "label": "Bakai (debug)",
+    "adapter": "Dart",
+    "type": "flutter",
+    "request": "launch",
+    "program": "app/bakai/lib/main.dart",
+    "toolArgs": ["--flavor=dev"]
+  }
+]
+```
+
+## Snippets
+
+`stless`, `stful`, `stanim`, `inh`, `initS`, `dis`, `didChangeD`, `didUpdateW`, `build`, `test`,
+`testW` and `group`.
+
+## Analysis server options
+
+The extension enables closing labels (`closingLabels`). Other
+[initialization options](https://github.com/dart-lang/sdk/blob/main/pkg/analysis_server/tool/lsp_spec/README.md#initialization-options)
+can be set in the settings, for example:
+
+```json
+{
+  "lsp": {
+    "dart": {
+      "initialization_options": {
+        "outline": true,
+        "flutterOutline": true
       }
     }
   }
