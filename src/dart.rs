@@ -13,7 +13,9 @@ use zed_extension_api::{
 /// Marks the tasks from `languages/dart/tasks.json`. They run
 /// `sh -c <script> dart-task <dir> <worktree root> <tool> <args>...`, where the
 /// script runs the tool from the nearest package root, using the project's
-/// FVM SDK if it has one.
+/// FVM SDK if it has one. Zed joins a task's command and arguments into a
+/// shell command line without quoting them, so the arguments there are
+/// already quoted.
 const TASK_MARKER: &str = "dart-task";
 
 fn tool_binary(debug_mode: &str) -> &'static str {
@@ -39,6 +41,12 @@ fn dart_task_command(task: &TaskTemplate) -> Option<Vec<&str>> {
         }
         _ => None,
     }
+}
+
+fn unquote(arg: &str) -> &str {
+    arg.strip_prefix('"')
+        .and_then(|arg| arg.strip_suffix('"'))
+        .unwrap_or(arg)
 }
 
 fn file_exists(worktree: &Worktree, path: &str) -> bool {
@@ -339,7 +347,7 @@ impl zed::Extension for DartExtension {
         }
         let command = dart_task_command(&build_task)?;
         let program = match command.as_slice() {
-            ["flutter", "run", "-t", program] | ["flutter", "test", program] => *program,
+            ["flutter", "run", "-t", program] | ["flutter", "test", program] => unquote(program),
             _ => return None,
         };
         let config = json!({
@@ -528,6 +536,77 @@ mod tests {
         for task in tasks() {
             assert!(dart_task_command(&task).is_some(), "{}", task.label);
         }
+    }
+
+    /// Runs a task the way Zed does: substitutes the variables, joins the
+    /// command and arguments with spaces and hands the line to a shell.
+    fn run_task(label: &str, tool: &[&str], variables: &[(&str, &str)]) -> String {
+        let task = tasks()
+            .into_iter()
+            .find(|task| task.label == label)
+            .unwrap();
+        let mut args = task.args.clone();
+        let tool_index = 5;
+        args.splice(
+            tool_index..=tool_index,
+            tool.iter().map(|arg| arg.to_string()),
+        );
+        let mut line = std::iter::once(task.command.clone())
+            .chain(args)
+            .collect::<Vec<_>>()
+            .join(" ");
+        for (name, value) in variables {
+            line = line
+                .replace(&format!("${{{name}:}}"), value)
+                .replace(&format!("${name}"), value);
+        }
+        let output = std::process::Command::new("sh")
+            .args(["-c", &line])
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{label}: {output:?}");
+        String::from_utf8(output.stdout).unwrap()
+    }
+
+    #[test]
+    fn test_tasks_run_from_the_package_root() {
+        let root = std::env::temp_dir().join(format!("zed dart tasks {}", std::process::id()));
+        let package = root.join("app dir/bakai");
+        std::fs::create_dir_all(package.join("test")).unwrap();
+        std::fs::write(package.join("pubspec.yaml"), "name: bakai\n").unwrap();
+        let root_path = root.to_str().unwrap();
+        let test_dir = package.join("test");
+        let test_file = test_dir.join("a_test.dart");
+        let variables = [
+            ("ZED_DIRNAME", test_dir.to_str().unwrap()),
+            ("ZED_WORKTREE_ROOT", root_path),
+            ("ZED_FILE", test_file.to_str().unwrap()),
+            ("ZED_ROW", "3"),
+        ];
+
+        assert_eq!(
+            run_task(
+                "flutter test $ZED_CUSTOM_DART_TEST_NAME",
+                &["printf", "'%s|'"],
+                &variables
+            ),
+            format!("test|{}?line=3|", test_file.display())
+        );
+        assert_eq!(
+            run_task("flutter pub get", &["sh", "-c", "pwd"], &variables).trim_end(),
+            package.to_str().unwrap()
+        );
+        assert_eq!(
+            run_task(
+                "flutter pub get",
+                &["sh", "-c", "pwd"],
+                &[("ZED_DIRNAME", ""), ("ZED_WORKTREE_ROOT", root_path)]
+            )
+            .trim_end(),
+            root_path
+        );
+
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]
