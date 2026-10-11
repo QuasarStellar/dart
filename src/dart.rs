@@ -386,10 +386,11 @@ impl zed::Extension for DartExtension {
         _worktree: &zed::Worktree,
     ) -> Result<Option<serde_json::Value>> {
         // Zed merges `lsp.dart.initialization_options` from the settings on
-        // top of these. `outline` and `flutterOutline` stay off until Zed
-        // handles their notifications: unhandled ones are logged in full.
+        // top of these. `outline` stays off: Zed logs unhandled notifications
+        // in full, and the Flutter outline already covers declarations.
         Ok(Some(json!({
             "closingLabels": true,
+            "flutterOutline": true,
         })))
     }
 

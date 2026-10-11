@@ -67,7 +67,8 @@ in `_test.dart` is run by the test debug adapter:
 
 ## Analysis server options
 
-The extension enables closing labels (`closingLabels`). Other
+The extension enables closing labels (`closingLabels`) and the Flutter outline
+(`flutterOutline`). Other
 [initialization options](https://github.com/dart-lang/sdk/blob/main/pkg/analysis_server/tool/lsp_spec/README.md#initialization-options)
 can be set in the settings, for example:
 
@@ -76,8 +77,7 @@ can be set in the settings, for example:
   "lsp": {
     "dart": {
       "initialization_options": {
-        "outline": true,
-        "flutterOutline": true
+        "onlyAnalyzeProjectsWithOpenFiles": true
       }
     }
   }
